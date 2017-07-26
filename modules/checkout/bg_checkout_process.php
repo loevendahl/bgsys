@@ -268,11 +268,16 @@ else
 	
 	 $_SESSION['gls_private_address']='';
     $_SESSION['gls_private_code']='';		
+ 
+
   // QuickPay changed start
-  if (strncmp($payment, 'quickpay', 8) == 0 && !$_SESSION['credit_covers']) {
+  //KL changed
+ // if (strncmp($payment, 'quickpay', 8) == 0 && !$_SESSION['credit_covers']) {
+	   if ($payment == 'quickpay_advanced' && !$_SESSION['credit_covers']) {
   	// Update transaction_id from db
-       if($_SESSION['payment']!='quickpay_advanced') { 
-           
+     
+	 if($_SESSION['payment']!='quickpay_advanced') { 
+     $order_id = $_SESSION['order_id'];  
 	$transaction_query = bg_db_query("SELECT cc_transactionid FROM " . TABLE_ORDERS . " WHERE orders_id = '" . bg_db_input($order_id) . "'");
 	$transaction = bg_db_fetch_array($transaction_query);
 	  	
@@ -290,14 +295,15 @@ else
             $insert_id = $order_id; 
            
        }
-  }
+	   }
   else {
     // else do as usual
     bg_db_perform(TABLE_ORDERS, $sql_data_array);
     $insert_id = bg_db_insert_id();
   }
 // QuickPay changed end  
-  
+
+ 
   for ($i=0, $n=sizeof($order_totals); $i<$n; $i++) {
   	
   	//adi update
