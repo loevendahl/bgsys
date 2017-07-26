@@ -273,11 +273,11 @@ else
   // QuickPay changed start
   //KL changed
  // if (strncmp($payment, 'quickpay', 8) == 0 && !$_SESSION['credit_covers']) {
-	   if ($payment == 'quickpay_advanced' && !$_SESSION['credit_covers']) {
+	   if (($_GET['qp_oid'] && $payment == 'quickpay_advanced') && !$_SESSION['credit_covers']) {
   	// Update transaction_id from db
-     
+     $order_id = $_GET['qp_oid'];
 	 if($_SESSION['payment']!='quickpay_advanced') { 
-     $order_id = $_SESSION['order_id'];  
+       
 	$transaction_query = bg_db_query("SELECT cc_transactionid FROM " . TABLE_ORDERS . " WHERE orders_id = '" . bg_db_input($order_id) . "'");
 	$transaction = bg_db_fetch_array($transaction_query);
 	  	

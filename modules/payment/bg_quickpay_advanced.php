@@ -377,18 +377,13 @@ class quickpay_advanced {
         global $_POST, $order, $currencies, $language, $order_id, $order_total_modules;
 
 
-//KL added .avoid this function from doing anything if not called from confirmation page process_button(), i.e. is "reused" as continue url from Quickpay gateway, thus running the full order approval tasks.
-
-        if (!$_POST['qp_adv_card']) {
-           
-            return false;
-        }
-//		
+		
 		if ($order->info['total'] <= 0) {
             $_SESSION['credit_covers'] = 1;
             return false;
         }
-        
+  
+      
         $process_parameters = array();
         $flag_qp_order_id = false;
 
@@ -404,6 +399,10 @@ class quickpay_advanced {
           		
                         }
       	   }
+  
+  //KL added .avoid the following functions from doing anything if called  as continue url from Quickpay gateway. Functions are only needed to initiate the payment process.
+if (!$_GET['qp_oid']) {
+
 
         // We need order_id to pass to the gateway
         // But we do not have the order_id at this moment. 
@@ -418,7 +417,7 @@ class quickpay_advanced {
 
             // Authenticate order_id with QP using API
             $order_id = $_SESSION['order_id'];
-	   
+		
 	   
 	   /*  ////KL section Commented out: 
 	   The following sequence will not work here: You will not get any order payment status from Quickpay  if the payment link is not created . Payment link is created /updated below and user sent to payment window.
@@ -458,7 +457,7 @@ class quickpay_advanced {
             }
 			//testing account purpose...
 		if(!defined('MODULE_PAYMENT_QUICKPAY_ADVANCED_ORDERPREFIX')){define('MODULE_PAYMENT_QUICKPAY_ADVANCED_ORDERPREFIX','BGSYS');
-		} 
+		
 		//Use the prefix consistently
         $qp_order_id = MODULE_PAYMENT_QUICKPAY_ADVANCED_ORDERPREFIX.sprintf('%04d', $order_id);
 
@@ -668,9 +667,9 @@ class quickpay_advanced {
 //exit;
         
 	echo "<script> window.location.replace('".$storder['url']."')</script>";         
-      exit();            
-                        
-                        
+			  }       
+    exit();                    
+}
     }
 
     function after_process() {
