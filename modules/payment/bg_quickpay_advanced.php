@@ -659,7 +659,7 @@ if (!$_GET['qp_oid']) {
        }
         echo $qid;
         echo "<pre>";
-        print_r($process_parameters);
+      //  print_r($process_parameters);
         echo "</pre>";
         
 	$storder = $apiorder->link($qid, $process_parameters);	
