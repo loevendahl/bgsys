@@ -369,13 +369,22 @@ class quickpay_advanced {
         global $_POST;
         $process_button_string = bg_draw_hidden_field('qp_adv_card', $_POST['qp_adv_card']);
         $process_button_string .= bg_draw_hidden_field('cardlock', $_POST['cardlock']);
-        return $process_button_string;
+		
+		return $process_button_string;
     }
 
     function before_process() {
         global $_POST, $order, $currencies, $language, $order_id, $order_total_modules;
 
-        if ($order->info['total'] <= 0) {
+
+//KL added .avoid this function from doing anything if not called from confirmation page process_button(), i.e. is "reused" as continue url from Quickpay gateway, thus running the full order approval tasks.
+
+        if (!$_POST['qp_adv_card']) {
+           
+            return false;
+        }
+//		
+		if ($order->info['total'] <= 0) {
             $_SESSION['credit_covers'] = 1;
             return false;
         }
@@ -409,10 +418,23 @@ class quickpay_advanced {
 
             // Authenticate order_id with QP using API
             $order_id = $_SESSION['order_id'];
-            $order_status_approved_id = (MODULE_PAYMENT_QUICKPAY_ADVANCED_ORDER_STATUS_ID > 0 ? (int) MODULE_PAYMENT_QUICKPAY_ADVANCED_ORDER_STATUS_ID : (int) DEFAULT_ORDERS_STATUS_ID);
+	   
+	   
+	   /*  ////KL section Commented out: 
+	   The following sequence will not work here: You will not get any order payment status from Quickpay  if the payment link is not created . Payment link is created /updated below and user sent to payment window.
+	   
+		 Authorization check functions and status assignment functions are implemented in the callback script, custom_qp_callback.php.
+		 
+		 If any errors should occur, the cancelurl will be used by the gateway
+		 
+		 		
+          $order_status_approved_id = (MODULE_PAYMENT_QUICKPAY_ADVANCED_ORDER_STATUS_ID > 0 ? (int) MODULE_PAYMENT_QUICKPAY_ADVANCED_ORDER_STATUS_ID : (int) DEFAULT_ORDERS_STATUS_ID);
 
             $mode = (MODULE_PAYMENT_QUICKPAY_ADVANCED_SUBSCRIPTION == "Normal" ? "" : "1");
-            $checkorderid = $this->get_quickpay_order_status($order_id, $mode);
+      
+	
+		 
+		    $checkorderid = $this->get_quickpay_order_status($order_id, $mode);
 
             if($checkorderid["oid"] != $order_id){
               $fp = fopen('/home/bgtest/public_html/responsive/quickpay.txt', 'a+');  
@@ -432,9 +454,13 @@ class quickpay_advanced {
             // everything is fine... continue
             return;
                     }
-
+*/	
             }
-        $qp_order_id = sprintf('%04d', $order_id);
+			//testing account purpose...
+		if(!defined('MODULE_PAYMENT_QUICKPAY_ADVANCED_ORDERPREFIX')){define('MODULE_PAYMENT_QUICKPAY_ADVANCED_ORDERPREFIX','BGSYS');
+		} 
+		//Use the prefix consistently
+        $qp_order_id = MODULE_PAYMENT_QUICKPAY_ADVANCED_ORDERPREFIX.sprintf('%04d', $order_id);
 
         // Calculate the total order amount for the order (the same way as in checkout_process.php)
 //        require(DIR_WS_CLASSES . 'order_total.php');//present in checkout_process
@@ -464,10 +490,14 @@ class quickpay_advanced {
             $qp_order_amount = $currencies->calculate($order->info['total'], true, $order->info['currency'], $order->info['currency_value'], '.', '');
         }
         $currency_code = $order->info['currency'];
-        $merchant_id = MODULE_PAYMENT_QUICKPAY_GATE_SHOPID;
+		
+	
+      $merchant_id = MODULE_PAYMENT_QUICKPAY_GATE_SHOPID;
+	  
+
 
         $qp_continueurl = bg_href_link(SYSTEM_FOLDER . MODULE_CHECKOUT . FILENAME_CHECKOUT_PROCESS, bg_session_name() . '=' . bg_session_id().'&qp_oid='.$order_id, 'SSL');
-        
+	   
         $qp_cancelurl = bg_href_link(SYSTEM_FOLDER . MODULE_CHECKOUT . FILENAME_CHECKOUT_PAYMENT, 'payment_error=' . $this->code, 'SSL');
         
         $qp_callbackurl = bg_href_link('custom_qp_callback10.php','oid='.$order_id, 'SSL'); 
@@ -487,7 +517,8 @@ class quickpay_advanced {
        
         $qp_autofee='0';
         $qp_version = "v10";
-        $qp_apikey = MODULE_PAYMENT_QUICKPAY_ADVANCED_APIKEY;
+//KL changed. You are using the admin API key for the API user (former version of the plugin)
+        $qp_apikey = MODULE_PAYMENT_QUICKPAY_ADVANCED_ADMIN_APIKEY;
 
         $qp_product_id = "P03";
         $qp_category = MODULE_PAYMENT_QUICKPAY_ADVANCED_PAII_CAT;
@@ -570,7 +601,14 @@ class quickpay_advanced {
 //        echo MODULE_PAYMENT_QUICKPAY_TEXT_WAIT . "\n";
 //        echo '</body></html>';
 //        exit();
-        
+  
+  
+  //test account data KL:
+  
+    $qp_apikey = "f2d562c815d9c0e1dea9fb2573d4053041315f902ca04a15600186d023462a0a";
+	$qp_aggreement_id = "762"; // The WINDOW user agreement id.
+	$qp_merchant_id ="313";
+	      
         		$process_parameters = array(
 					'agreement_id'                 => $qp_aggreement_id,
 					'amount'                       => $qp_order_amount,
@@ -596,7 +634,7 @@ class quickpay_advanced {
 					'version'                      => 'v10'
 						);
         
-  
+
                         
               // if($_POST['callquickpay'] == "go") {
 	    $apiorder= new QuickpayApi();
@@ -605,7 +643,7 @@ class quickpay_advanced {
 	$mode = (MODULE_PAYMENT_QUICKPAY_ADVANCED_SUBSCRIPTION == "Normal" ? "" : "1");
 	  	//been here before?
 	    $exists = $this->get_quickpay_order_status($qp_order_id, $mode);
-	print_r($exists);
+	//print_r($exists);
     $qid = $exists["qid"];
     
 	//set to create/update mode
@@ -615,8 +653,9 @@ class quickpay_advanced {
       //create new quickpay order	
       $storder = $apiorder->createorder($qp_order_id, $currency_code, $process_parameters);
       $qid = $storder["id"];
-     
-      }else{
+ 
+	 
+	  }else{
        $qid = $exists["qid"];
        }
         echo $qid;
@@ -625,11 +664,11 @@ class quickpay_advanced {
         echo "</pre>";
         
 	$storder = $apiorder->link($qid, $process_parameters);	
-        echo $storder['url'];
- exit;
+      //  echo $storder['url'];
+//exit;
         
 	echo "<script> window.location.replace('".$storder['url']."')</script>";         
-       exit();            
+      exit();            
                         
                         
     }
@@ -878,7 +917,13 @@ class quickpay_advanced {
 private function get_quickpay_order_status($order_id,$mode="") {
 	$api= new QuickpayApi();
 	
-	$api->setOptions(MODULE_PAYMENT_QUICKPAY_ADVANCED_APIKEY);
+	
+	$qp_apikey = MODULE_PAYMENT_QUICKPAY_ADVANCED_ADMIN_APIKEY;
+	
+	//uncomment this line . Used for test account
+	 $qp_apikey = "f2d562c815d9c0e1dea9fb2573d4053041315f902ca04a15600186d023462a0a";
+	//
+	$api->setOptions($qp_apikey);
   try {
 	$api->mode = ($mode=="" ? "payments?order_id=" : "subscriptions?order_id=");
 	
